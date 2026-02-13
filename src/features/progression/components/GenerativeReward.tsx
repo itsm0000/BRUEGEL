@@ -1,9 +1,69 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import { X, Download } from 'lucide-react';
+import { DrawingPoint } from '~utils/geometry';
+import { exportCanvasToImage } from '~utils/exportUtils';
+import { motion } from 'framer-motion';
 
-// ... imports
+interface GenerativeRewardProps {
+    userPath: DrawingPoint[];
+    levelId: string;
+    score: number;
+    onClose: () => void;
+}
 
-const GenerativeReward: React.FC<GenerativeRewardProps> = ({ userPath, levelId, score, onClose }) => {
-    // ... logic
+const GenerativeReward: React.FC<GenerativeRewardProps> = ({ userPath, onClose }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    const handleDownload = () => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+            exportCanvasToImage(canvas, userPath);
+        }
+    };
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !userPath || !userPath.length) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Set dimensions
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        // Drawing Logic
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        // Background
+        ctx.fillStyle = '#fdfbf7';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        // Draw Path
+        if (userPath.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.moveTo(userPath[0].x, userPath[0].y);
+            for (let i = 1; i < userPath.length; i++) {
+                const p = userPath[i];
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+        }
+
+        // Add "Stamp"
+        ctx.font = 'bold 16px serif';
+        ctx.fillStyle = '#dca54c';
+        ctx.fillText('BRUEGEL', 20, rect.height - 20);
+
+    }, [userPath]);
 
     return (
         <motion.div

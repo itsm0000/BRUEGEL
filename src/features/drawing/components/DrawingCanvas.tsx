@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Path, DrawingPoint, calculateDeviation, calculateScore } from '../../utils/geometry';
+import { Path, DrawingPoint, calculateDeviation, calculateScore } from '~utils/geometry';
 
 interface DrawingCanvasProps {
     ghostPath?: Path;
@@ -172,18 +172,33 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ ghostPath, onDrawStart, o
             // setIsDrawing(false);
             isDrawingRef.current = false;
 
-            // Calculate Score
-            let score = 0;
-            if (ghostPath && userPathRef.current.length > 10) {
-                score = calculateScore(userPathRef.current, ghostPath);
-            }
-
-            onDrawEnd?.(score);
-
             if (rafId.current) {
                 cancelAnimationFrame(rafId.current);
                 rafId.current = null;
             }
+
+            // Only finish if we have a ghost path and are close to the end
+            if (ghostPath && userPathRef.current.length > 0) {
+                const lastUserPoint = userPathRef.current[userPathRef.current.length - 1];
+                const lastGhostPoint = ghostPath.points[ghostPath.points.length - 1];
+                const distToEnd = Math.hypot(lastUserPoint.x - lastGhostPoint.x, lastUserPoint.y - lastGhostPoint.y);
+
+                // Threshold for "finishing" (e.g., within 30px of end)
+                if (distToEnd < 30) {
+                    const score = calculateScore(userPathRef.current, ghostPath);
+                    onDrawEnd?.(score);
+                } else {
+                    // User lifted pen but didn't finish. 
+                    // We effectively "pause" the scoring, but since this is a one-shot drawing app 
+                    // (currently), maybe we just let them restart by drawing again?
+                    // User request: "Level rating went away and came back..."
+                    // Current behavior: `startDrawing` resets the path.
+                    // If we want them to continue, we shouldn't reset on startDrawing if it was just a pause.
+                    // BUT, implementing full multi-stroke support is complex.
+                    // For now, PREVENTING the failure modal is the key fix.
+                }
+            }
+
             pointerPos.current = null;
             brushPos.current = null;
         }

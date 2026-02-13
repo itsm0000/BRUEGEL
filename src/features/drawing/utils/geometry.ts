@@ -123,7 +123,7 @@ export const calculateScore = (userPoints: Point[], ghostPath: Path): number => 
     }
 
     const avgDistance = userCount > 0 ? totalDistance / userCount : 100;
-    const precisionScore = Math.max(0, 100 - (avgDistance * 3)); // Stricter precision
+    const precisionScore = Math.max(0, 100 - (avgDistance * 2.5)); // Tuned: Slightly more forgiving (was 3)
 
     // --- 2. Coverage ---
     // Check how many ghost points are close to ANY user point

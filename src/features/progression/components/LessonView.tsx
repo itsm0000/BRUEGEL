@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
-import DrawingCanvas from '../Canvas/DrawingCanvas'
-import GhostOverlay from '../Canvas/GhostOverlay'
-import Toolbar from '../UI/Toolbar'
+import DrawingCanvas from '~features/drawing/components/DrawingCanvas'
+import GhostOverlay from '~features/drawing/components/GhostOverlay'
+import Toolbar from '~features/drawing/components/Toolbar'
 import GenerativeReward from './GenerativeReward'
-import { generateLessonPath } from '../../utils/pathGenerator'
-import { playSound } from '../../utils/sound'
-import { Level } from '../../data/levels'
+// import { generateLessonPath } from '~utils/pathGenerator' // Removed
+import { playSound } from '~utils/sound'
+import { Level } from '@/types/level'
 import { ArrowLeft } from 'lucide-react';
-import { DrawingPoint } from '../../utils/geometry';
+import { DrawingPoint } from '~utils/geometry';
 
 interface LessonViewProps {
     level: Level;
@@ -16,13 +16,43 @@ interface LessonViewProps {
     onNext?: () => void;
 }
 
+import { useTheme } from '~features/theming/ThemeContext';
+
 const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNext }) => {
-    // Generate path based on level type and params
+    // Theme Integration
+    const { setSubTier, theme } = useTheme();
+
+    useEffect(() => {
+        if (level.subTier) {
+            setSubTier(level.subTier);
+        }
+    }, [level.subTier, setSubTier]);
+
+    // Generate scaled path from level data
+    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+    useEffect(() => {
+        const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const lessonPath = useMemo(() => {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        return generateLessonPath(level.type, width, height, level.parameters);
-    }, [level]);
+        const targetSize = 1000; // The size of our source data box
+        const scale = Math.min(dimensions.width, dimensions.height) / targetSize * 0.8; // 0.8 for padding
+
+        const offsetX = (dimensions.width - targetSize * scale) / 2;
+        const offsetY = (dimensions.height - targetSize * scale) / 2;
+
+        return {
+            points: level.points.map(p => ({
+                x: p.x * scale + offsetX,
+                y: p.y * scale + offsetY,
+                pressure: p.pressure
+            })),
+            isClosed: level.isClosed
+        };
+    }, [level, dimensions]);
 
     const [canvasKey, setCanvasKey] = useState(0);
     const [isUIHidden, setIsUIHidden] = useState(false);
@@ -91,11 +121,12 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
     }, [handleClear, onBack]);
 
     return (
-        <div className="w-full h-full relative bg-zinc-50 overflow-hidden touch-none selection:bg-none">
+        <div className={`w-full h-full relative overflow-hidden touch-none selection:bg-none transition-colors duration-700 ${theme.colors.background}`}>
             {/* Background Grid */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+            <div className="absolute inset-0 pointer-events-none"
                 style={{
-                    backgroundImage: 'radial-gradient(#000 1px, transparent 1px)',
+                    opacity: theme.backgroundPattern.opacity,
+                    backgroundImage: `radial-gradient(${theme.backgroundPattern.color} 1px, transparent 1px)`,
                     backgroundSize: '24px 24px'
                 }}
             />
@@ -122,9 +153,9 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
 
                 {/* Header Instruction */}
                 <div className="absolute top-6 left-1/2 transform -translate-x-1/2 w-[90%] md:w-auto text-center">
-                    <div className="bg-white/80 backdrop-blur-md shadow-sm border border-black/5 rounded-2xl p-4 inline-flex flex-col gap-1">
-                        <h1 className="text-lg font-bold text-zinc-800">{level.title}</h1>
-                        <p className="text-sm text-zinc-500">{level.description}</p>
+                    <div className={`${theme.colors.node.bg} ${theme.colors.node.border} ${theme.colors.node.shadow} backdrop-blur-md shadow-sm border rounded-2xl p-4 inline-flex flex-col gap-1 transition-all duration-500`}>
+                        <h1 className={`text-lg font-bold ${theme.colors.text} ${theme.typography.headerfont}`}>{level.title}</h1>
+                        <p className={`text-sm ${theme.colors.accent} ${theme.typography.bodyFont}`}>{level.description}</p>
                     </div>
                 </div>
 

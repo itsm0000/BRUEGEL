@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import LevelMap from './components/Gamification/LevelMap';
-import LessonView from './components/Gamification/LessonView';
-import { useProgressStore } from './store/progress';
-import { Level, LEVELS } from './data/levels';
+import { useState, useMemo } from 'react';
+import LevelMap from '~features/navigation/components/LevelMap';
+import LessonView from '~features/progression/components/LessonView';
+import { useProgressStore } from '@/store/progress';
+import { TIERS } from '@/data/tiers';
+import { Level } from '@/types/level';
 
-import FreeDraw from './components/Gamification/FreeDraw';
-import ErrorBoundary from './components/ErrorBoundary';
+import FreeDraw from '~features/drawing/components/FreeDraw';
+import ErrorBoundary from '~components/ui/ErrorBoundary';
+import { ThemeProvider } from '~features/theming/ThemeContext';
 
 
 function App() {
@@ -13,18 +15,23 @@ function App() {
     const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
     const { completeLevel, unlockLevel } = useProgressStore();
 
+    // Flatten levels for easy lookup
+    const allLevels = useMemo(() => {
+        return TIERS.flatMap(t => t.subTiers.flatMap(st => st.levels));
+    }, []);
+
     const handleLevelSelect = (level: Level) => {
         setCurrentLevel(level);
         setView('lesson');
     };
 
 
-    const handleBackToMap = () => { // Renamed handleBack to handleBackToMap for clarity with new view state
+    const handleBackToMap = () => {
         setCurrentLevel(null);
-        setView('map'); // Set view to map
+        setView('map');
     };
 
-    const handleLevelComplete = (score: number) => { // New handler for lesson completion
+    const handleLevelComplete = (score: number) => {
         if (currentLevel) {
             completeLevel(currentLevel.id, score);
             const currentIdNum = parseInt(currentLevel.id.split('-')[1]);
@@ -33,66 +40,70 @@ function App() {
             if (score >= currentLevel.requiredScore) {
                 unlockLevel(nextLevelId);
             }
-            setView('map'); // Go back to map after completion
+            setView('map');
             setCurrentLevel(null);
         }
     };
 
-    const handleNextLevel = () => { // New handler for navigating to the next level
+    const handleNextLevel = () => {
         if (currentLevel) {
             const currentIdNum = parseInt(currentLevel.id.split('-')[1]);
-            const nextLevel = LEVELS.find(l => l.id === `level-${currentIdNum + 1}`);
+            const nextLevelId = `level-${currentIdNum + 1}`;
+            const nextLevel = allLevels.find(l => l.id === nextLevelId);
+
             if (nextLevel) {
                 setCurrentLevel(nextLevel);
             } else {
-                setView('map'); // If no next level, go back to map
+                setView('map'); // End of content or bug
                 setCurrentLevel(null);
             }
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 overflow-hidden touch-none select-none">
-            {view === 'map' && (
-                <ErrorBoundary>
-                    <LevelMap
-                        key="map"
-                        onSelectLevel={handleLevelSelect}
-                        onFreeDraw={() => setView('freedraw')}
-                    />
-                </ErrorBoundary>
-            )}
-
-            {view === 'lesson' && currentLevel && (
-                <div className="fixed inset-0 z-10 bg-red-500">
+        <ThemeProvider>
+            <div className="min-h-screen bg-slate-50 overflow-hidden touch-none select-none">
+                {view === 'map' && (
                     <ErrorBoundary>
-                        <LessonView
-                            key="lesson"
-                            level={currentLevel}
-                            onBack={handleBackToMap}
-                            onComplete={handleLevelComplete}
-                            onNext={handleNextLevel}
+                        <LevelMap
+                            key="map"
+                            onSelectLevel={handleLevelSelect}
+                            onFreeDraw={() => setView('freedraw')}
                         />
                     </ErrorBoundary>
-                </div>
-            )}
+                )}
 
-            {view === 'freedraw' && (
-                <div className="fixed inset-0 z-10 bg-white">
-                    <ErrorBoundary>
-                        <FreeDraw
-                            key="freedraw"
-                            onBack={handleBackToMap}
-                        />
-                    </ErrorBoundary>
+                {view === 'lesson' && currentLevel && (
+                    <div className="fixed inset-0 z-10 bg-red-500">
+                        <ErrorBoundary>
+                            <LessonView
+                                key="lesson"
+                                level={currentLevel}
+                                onBack={handleBackToMap}
+                                onComplete={handleLevelComplete}
+                                onNext={handleNextLevel}
+                            />
+                        </ErrorBoundary>
+                    </div>
+                )}
+
+                {view === 'freedraw' && (
+                    <div className="fixed inset-0 z-10 bg-white">
+                        <ErrorBoundary>
+                            <FreeDraw
+                                key="freedraw"
+                                onBack={handleBackToMap}
+                            />
+                        </ErrorBoundary>
+                    </div>
+                )}
+                {/* PERSISTENT DEBUGGER */}
+                <div className="fixed bottom-0 right-0 p-4 bg-black/80 text-white text-xs font-mono z-50 pointer-events-none">
+                    VIEW: {view}<br />
+                    LEVEL: {currentLevel ? currentLevel.id : 'null'}
                 </div>
-            )}
-            {/* PERSISTENT DEBUGGER */}
-            <div className="fixed bottom-0 right-0 p-4 bg-black/80 text-white text-xs font-mono z-50 pointer-events-none">
-                VIEW: {view}<br />
-                LEVEL: {currentLevel ? currentLevel.id : 'null'}
             </div>
-        </div>
+        </ThemeProvider>
     );
 }
 

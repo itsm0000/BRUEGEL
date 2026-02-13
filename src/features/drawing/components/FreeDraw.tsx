@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import DrawingCanvas from '../Canvas/DrawingCanvas';
+import DrawingCanvas from './DrawingCanvas';
 import { ArrowLeft, Eraser, PenTool, Download } from 'lucide-react';
-import { playSound } from '../../utils/sound';
-import { exportCanvasToImage } from '../../utils/exportUtils';
-import { DrawingPoint } from '../../utils/geometry';
+import { playSound } from '~utils/sound';
+import { exportCanvasToImage } from '~utils/exportUtils';
+import { DrawingPoint } from '~utils/geometry';
 
 interface FreeDrawProps {
     onBack: () => void;

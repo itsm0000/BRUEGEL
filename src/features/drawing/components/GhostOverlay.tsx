@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Path } from '../../utils/geometry';
+import { Path } from '~utils/geometry';
 
 interface GhostOverlayProps {
     path: Path;
