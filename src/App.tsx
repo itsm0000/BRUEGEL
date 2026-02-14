@@ -8,6 +8,7 @@ import { Level } from '@/types/level';
 import FreeDraw from '~features/drawing/components/FreeDraw';
 import ErrorBoundary from '~components/ui/ErrorBoundary';
 import { ThemeProvider } from '~features/theming/ThemeContext';
+import { A11yAnnouncer } from '~components/a11y/A11yAnnouncer';
 
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
 
     return (
         <ThemeProvider>
+            <A11yAnnouncer />
             <div className="min-h-screen bg-slate-50 overflow-hidden touch-none select-none">
                 {view === 'map' && (
                     <ErrorBoundary>

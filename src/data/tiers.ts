@@ -1,4 +1,4 @@
-import { Tier, Level } from '~types/level';
+import { Tier } from '../types/level';
 import { LEVEL_PATHS } from './levelPaths';
 
 export const TIERS: Tier[] = [

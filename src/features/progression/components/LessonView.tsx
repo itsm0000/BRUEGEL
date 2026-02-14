@@ -29,25 +29,95 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
     }, [level.subTier, setSubTier]);
 
     // Generate scaled path from level data
-    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
-        const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const { clientWidth, clientHeight } = containerRef.current;
+                // Only update if dimensions are valid to prevent "vanishing" path
+                if (clientWidth > 0 && clientHeight > 0) {
+                    setDimensions({ width: clientWidth, height: clientHeight });
+                }
+            }
+        };
+
+        window.addEventListener('resize', updateDimensions);
+        updateDimensions();
+
+        // Use ResizeObserver for accurate container sizing
+        const observer = new ResizeObserver(updateDimensions);
+        if (containerRef.current) observer.observe(containerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateDimensions);
+            observer.disconnect();
+        };
     }, []);
 
     const lessonPath = useMemo(() => {
-        const targetSize = 1000; // The size of our source data box
-        const scale = Math.min(dimensions.width, dimensions.height) / targetSize * 0.8; // 0.8 for padding
+        if (!level.points.length) return { points: [], isClosed: false };
 
-        const offsetX = (dimensions.width - targetSize * scale) / 2;
-        const offsetY = (dimensions.height - targetSize * scale) / 2;
+        // 1. Calculate Bounds
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        level.points.forEach(p => {
+            minX = Math.min(minX, p.x);
+            maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y);
+            maxY = Math.max(maxY, p.y);
+        });
+
+        const contentW = maxX - minX;
+        const contentH = maxY - minY;
+
+        // 2. Determine Scale (Fit to container with padding)
+        const paddingX = 0.2; // 10% on each side
+        const paddingTop = 0.15; // 15% top
+        const paddingBottom = 0.35; // 35% bottom for Toolbar clearance
+
+        const availW = dimensions.width * (1 - paddingX);
+        const availH = dimensions.height * (1 - (paddingTop + paddingBottom));
+
+        // Handle edge cases like flat lines (width or height is 0)
+        // If dimension is 0, we can effectively scale infinitely in that direction, 
+        // so we treat "scale" as determined by the other dimension.
+        // We use a safe large number instead of Infinity to avoid math issues.
+        const scaleX = contentW > 0 ? availW / contentW : 10000;
+        const scaleY = contentH > 0 ? availH / contentH : 10000;
+
+        let scale = Math.min(scaleX, scaleY);
+
+        // Sanity check: If both are huge (single point), default to 1
+        if (scale > 1000) scale = 1;
+
+        // 3. Center
+        // drawnW/H is the size of the bounding box after scaling
+        const drawnW = contentW * scale;
+        const drawnH = contentH * scale;
+
+        // Offset = Center of Available Space - Center of Drawn Content
+        // Center of Available X = dim * 0.5 (Standard symmetry)
+        // Center of Available Y = dim * paddingTop + availH / 2
+
+        const offsetX = (dimensions.width - drawnW) / 2 - minX * scale;
+
+        // Vertical offset includes the top padding push
+        // targetCenterY = dimensions.height * paddingTop + availH / 2
+        // currentCenterY = minY * scale + drawnH / 2
+        // offset = targetCenterY - currentCenterY
+        const targetCenterY = dimensions.height * paddingTop + availH / 2;
+        // y_final = y * scale + offset
+        // center_final = center_initial * scale + offset
+        // offset = center_final - center_initial * scale
+        // offset = targetCenterY - (minY + contentH/2) * scale
+
+        const calculatedOffsetY = targetCenterY - (minY + contentH / 2) * scale;
 
         return {
             points: level.points.map(p => ({
                 x: p.x * scale + offsetX,
-                y: p.y * scale + offsetY,
+                y: p.y * scale + calculatedOffsetY,
                 pressure: p.pressure
             })),
             isClosed: level.isClosed
@@ -131,18 +201,40 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
                 }}
             />
 
-            <GhostOverlay path={lessonPath} />
+            {/* Museum Frame Container */}
+            <div className="absolute inset-0 flex items-center justify-center p-8 md:p-12 pointer-events-none">
+                <div className="relative w-full h-full max-w-[1600px] max-h-[90vh] bg-white shadow-2xl rounded-sm border-[12px] border-stone-100 ring-1 ring-stone-900/5 overflow-hidden transition-all duration-700 ease-in-out">
 
-            <DrawingCanvas
-                key={canvasKey}
-                ghostPath={lessonPath}
-                onDrawStart={handleDrawStart}
-                onDrawEnd={handleDrawEnd}
-                onPathUpdate={handlePathUpdate}
-            />
+                    {/* Inner Matte */}
+                    <div className="absolute inset-0 pointer-events-none border-[24px] border-white z-10 opacity-50 shadow-inner"></div>
+
+                    {/* Canvas Layer */}
+                    <div ref={containerRef} className="absolute inset-0 pointer-events-auto">
+                        {dimensions.width > 0 && dimensions.height > 0 && (
+                            <>
+                                <GhostOverlay
+                                    path={lessonPath}
+                                    width={dimensions.width}
+                                    height={dimensions.height}
+                                />
+                                <DrawingCanvas
+                                    key={canvasKey}
+                                    width={dimensions.width}
+                                    height={dimensions.height}
+                                    ghostPath={lessonPath}
+                                    onDrawStart={handleDrawStart}
+                                    onDrawEnd={handleDrawEnd}
+                                    onPathUpdate={handlePathUpdate}
+                                />
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             {/* UI Overlay */}
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ease-in-out z-50 ${isUIHidden ? 'opacity-0' : 'opacity-100'}`}>
+
 
                 {/* Back Button */}
                 <div className="absolute top-6 left-6 pointer-events-auto">

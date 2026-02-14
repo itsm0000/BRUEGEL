@@ -3,10 +3,11 @@ import { useProgressStore } from '@/store/progress';
 import { Level } from '@/types/level'; // Type only
 import { useLevelLoader } from '~features/progression/hooks/useLevelLoader';
 import { playSound } from '~utils/sound';
-import { Lock, ChevronRight, ChevronLeft, Loader } from 'lucide-react';
+import { Lock, ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '~features/theming/ThemeContext';
 import { Skeleton } from '~components/ui/Skeleton';
+import { announce } from '~components/a11y/A11yAnnouncer';
 
 interface LevelMapProps {
     onSelectLevel: (level: Level) => void;
@@ -50,6 +51,11 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
             setSubTier(currentSubTierInfo.subTier as 'i' | 'ii' | 'iii');
         }
     }, [currentSubTierInfo.subTier, setSubTier]);
+
+    // Announce page changes
+    useEffect(() => {
+        announce(`Showing levels ${page * ITEMS_PER_PAGE + 1} to ${Math.min((page + 1) * ITEMS_PER_PAGE, levels.length)}`, 'polite');
+    }, [page, levels.length]);
 
     // Auto-scroll to current level on mount (if on current page)
     useEffect(() => {
@@ -264,9 +270,11 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                                     onClick={() => {
                                         if (isUnlocked) {
                                             playSound.click();
+                                            announce(`Starting level: ${level.title}`, 'assertive');
                                             onSelectLevel(level);
                                         } else {
                                             playSound.failure();
+                                            announce(`Level ${level.title} is locked. Complete previous levels to unlock.`, 'polite');
                                         }
                                     }}
                                     disabled={!isUnlocked}
@@ -327,7 +335,11 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                                             className="absolute -bottom-12"
                                         >
                                             <button
-                                                onClick={() => onSelectLevel(level)}
+                                                onClick={() => {
+                                                    playSound.click();
+                                                    announce(`Starting level: ${level.title}`, 'assertive');
+                                                    onSelectLevel(level);
+                                                }}
                                                 className={`${theme.colors.primaryButton} text-white text-xs font-bold px-6 py-2 rounded-full shadow-lg hover:opacity-90 transition-all flex items-center gap-2`}
                                                 aria-label={`Start Level ${level.title}`}
                                             >
@@ -354,6 +366,7 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
                         playSound.click();
+                        announce('Entering Free Draw Mode', 'polite');
                         onFreeDraw();
                     }}
                     className={`group ${theme.colors.node.bg} ${theme.colors.text} p-0 rounded-full shadow-2xl border ${theme.colors.node.border} transition-colors duration-300 flex items-center overflow-hidden`}

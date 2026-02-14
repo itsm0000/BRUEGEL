@@ -28,28 +28,28 @@ export interface ThemeConfig {
 export const THEMES: Record<string, ThemeConfig> = {
     'i': {
         id: 'museum',
-        description: 'A Diamond in the Rough - The Scratch',
+        description: 'The Gallery - The Foundation',
         colors: {
-            background: 'bg-[#fdfbf7]', // Warm White
+            background: 'bg-[#FDFBF7]', // Warm Paper White
             text: 'text-stone-900',
             accent: 'text-stone-500',
             node: {
                 bg: 'bg-white',
                 border: 'border-stone-200',
-                shadow: 'shadow-sm',
+                shadow: 'shadow-md shadow-stone-200/50',
                 text: 'text-stone-800'
             },
-            path: '#e7e5e4', // stone-200
-            primaryButton: 'bg-stone-900'
+            path: '#d6d3d1', // stone-300
+            primaryButton: 'bg-stone-900 hover:bg-stone-800 transition-colors'
         },
         backgroundPattern: {
-            type: 'grid',
-            opacity: 0.03,
-            color: '#000000'
+            type: 'dots',
+            opacity: 0.15,
+            color: '#a8a29e' // stone-400
         },
         typography: {
-            headerfont: 'font-serif italic',
-            bodyFont: 'font-sans'
+            headerfont: 'font-serif tracking-tight', // Playfair Display via index.css mapping
+            bodyFont: 'font-sans tracking-wide'     // Inter via index.css mapping
         }
     },
     'ii': {

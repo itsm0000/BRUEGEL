@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DrawingCanvas from './DrawingCanvas';
 import { ArrowLeft, Eraser, PenTool, Download } from 'lucide-react';
 import { playSound } from '~utils/sound';
@@ -13,6 +13,29 @@ const FreeDraw: React.FC<FreeDrawProps> = ({ onBack }) => {
     const [canvasKey, setCanvasKey] = useState(0);
     const [isUIHidden, setIsUIHidden] = useState(false);
     const userPathRef = useRef<DrawingPoint[]>([]);
+
+    // Container measurement
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const { clientWidth, clientHeight } = containerRef.current;
+                if (clientWidth > 0 && clientHeight > 0) {
+                    setDimensions({ width: clientWidth, height: clientHeight });
+                }
+            }
+        };
+
+        const observer = new ResizeObserver(updateDimensions);
+        if (containerRef.current) observer.observe(containerRef.current);
+
+        updateDimensions();
+
+        return () => observer.disconnect();
+    }, []);
+
 
     const handlePathUpdate = useCallback((path: DrawingPoint[]) => {
         userPathRef.current = path;
@@ -42,7 +65,7 @@ const FreeDraw: React.FC<FreeDrawProps> = ({ onBack }) => {
     }, []);
 
     return (
-        <div className="w-full h-full relative bg-zinc-50 overflow-hidden touch-none selection:bg-none">
+        <div ref={containerRef} className="w-full h-full relative bg-zinc-50 overflow-hidden touch-none selection:bg-none">
             {/* Background Grid - slightly different pattern for Free Draw */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.05]"
                 style={{
@@ -54,12 +77,16 @@ const FreeDraw: React.FC<FreeDrawProps> = ({ onBack }) => {
                 }}
             />
 
-            <DrawingCanvas
-                key={canvasKey}
-                onDrawStart={handleDrawStart}
-                onDrawEnd={handleDrawEnd}
-                onPathUpdate={handlePathUpdate}
-            />
+            {dimensions.width > 0 && dimensions.height > 0 && (
+                <DrawingCanvas
+                    key={canvasKey}
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    onDrawStart={handleDrawStart}
+                    onDrawEnd={handleDrawEnd}
+                    onPathUpdate={handlePathUpdate}
+                />
+            )}
 
             {/* UI Overlay */}
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ease-in-out z-50 ${isUIHidden ? 'opacity-0' : 'opacity-100'}`}>

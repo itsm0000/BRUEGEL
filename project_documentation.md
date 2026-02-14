@@ -125,4 +125,31 @@ We defined the first 20 levels to take a user from zero to competency.
 
 ---
 
+
+## 8. Critical Refinements (Phase 7: The "Horizon" Fixes)
+
+### 8.1 Auto-Framing Engine
+**The Problem:**
+Moving to the "Museum Frame" design introduced inconsistent canvas aspect ratios (e.g., 4:3 vs 16:9 vs Mobile). Hardcoded scaling (assuming 1000x1000 input) caused drawings to be misaligned, either disappearing or rendering off-center.
+
+**The Solution (`LessonView.tsx`):**
+We implemented a robust **Auto-Framing Algorithm**:
+1.  **Analyze Content**: It calculates the exact Bounding Box `(minX, maxX, minY, maxY)` of the level's path data.
+2.  **Dynamic Scaling**: It computes the maximum possible scale factor that fits this bounding box within the current container `dimensions`, while respecting safety margins.
+3.  **Centering**: It mathematically centers the scaled path within the container.
+
+### 8.2 Asymmetric Padding (UI Safety Zones)
+**The Problem:**
+Users could not draw the bottom parts of shapes (like the "L" in Level 3) because the floating Toolbar was intercepting touch/mouse events.
+
+**The Solution:**
+We updated the Auto-Framing logic to support **Asymmetric Padding**:
+*   **Top**: 15% (for Header)
+*   **Sides**: 10% (for Frame)
+*   **Bottom**: **35%** (reserved specifically for Toolbar clearance)
+
+This guarantees that *no matter the screen size*, the interactive specific drawing path is always lifted above the UI controls.
+
+---
+
 **End of Documentation**

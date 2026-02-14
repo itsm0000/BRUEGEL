@@ -1,4 +1,4 @@
-import { DrawingPoint } from '~utils/geometry';
+import { DrawingPoint } from '../features/drawing/utils/geometry';
 
 export interface Level {
     id: string;

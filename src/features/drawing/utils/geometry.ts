@@ -88,16 +88,45 @@ export const generatePolygonPath = (centerX: number, centerY: number, radius: nu
     return { points: path, isClosed: true };
 };
 
+// Helper: Distance from point P to segment AB
+const distanceToSegment = (p: Point, a: Point, b: Point): number => {
+    const l2 = Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2);
+    if (l2 === 0) return distance(p, a); // A and B are the same
+
+    // Projection of P onto line AB, parameterized as t
+    let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2;
+    t = Math.max(0, Math.min(1, t)); // Clamp t to segment [0, 1]
+
+    const projection = {
+        x: a.x + t * (b.x - a.x),
+        y: a.y + t * (b.y - a.y)
+    };
+
+    return distance(p, projection);
+};
+
 export const calculateDeviation = (point: Point, path: Path): number => {
+    if (path.points.length < 2) {
+        if (path.points.length === 1) return distance(point, path.points[0]);
+        return 0;
+    }
+
     let minDistance = Infinity;
 
-    // Simple brute-force to find nearest point on path
-    // Optimization: use spatial index for large paths
-    for (const p of path.points) {
-        const dist = distance(point, p);
-        if (dist < minDistance) {
-            minDistance = dist;
-        }
+    // Check distance to each segment
+    for (let i = 0; i < path.points.length - 1; i++) {
+        const p1 = path.points[i];
+        const p2 = path.points[i + 1];
+        const dist = distanceToSegment(point, p1, p2);
+        if (dist < minDistance) minDistance = dist;
+    }
+
+    // If path is closed, check closing segment (last -> first)
+    if (path.isClosed) {
+        const pLast = path.points[path.points.length - 1];
+        const pFirst = path.points[0];
+        const dist = distanceToSegment(point, pLast, pFirst);
+        if (dist < minDistance) minDistance = dist;
     }
 
     return minDistance;

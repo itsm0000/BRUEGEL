@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Tier, Level, SubTier } from '~types/level';
+import { useState } from 'react';
+import { Tier, Level } from '~types/level';
 
 // In a real app, this could be an API call or dynamic import
 // For now, we wrap the static data to simulate the async definition structure

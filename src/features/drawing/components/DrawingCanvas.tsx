@@ -1,14 +1,17 @@
 import React, { useRef, useEffect } from 'react';
 import { Path, DrawingPoint, calculateDeviation, calculateScore } from '~utils/geometry';
+import { announce } from '~components/a11y/A11yAnnouncer';
 
 interface DrawingCanvasProps {
+    width: number;
+    height: number;
     ghostPath?: Path;
     onDrawStart?: () => void;
     onDrawEnd?: (score: number) => void;
     onPathUpdate?: (path: DrawingPoint[]) => void;
 }
 
-const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ ghostPath, onDrawStart, onDrawEnd, onPathUpdate }) => {
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath, onDrawStart, onDrawEnd, onPathUpdate }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false); // Ref for animation loop to avoid closure staleness
 
@@ -31,32 +34,29 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ ghostPath, onDrawStart, o
     // Scoring state
     const userPathRef = useRef<DrawingPoint[]>([]);
 
-    // Resize canvas to fill window
+    // Handle sizing via props - Single Source of Truth
     useEffect(() => {
-        const handleResize = () => {
-            if (canvasRef.current) {
-                const dpr = window.devicePixelRatio || 1;
-                canvasRef.current.width = window.innerWidth * dpr;
-                canvasRef.current.height = window.innerHeight * dpr;
+        const canvas = canvasRef.current;
+        if (canvas && width > 0 && height > 0) {
+            // DEBUG: Force DPR 1 for alignment check
+            const dpr = 1; // window.devicePixelRatio || 1;
 
-                const ctx = canvasRef.current.getContext('2d');
-                if (ctx) ctx.scale(dpr, dpr);
+            // Set render resolution
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
 
-                canvasRef.current.style.width = `${window.innerWidth}px`;
-                canvasRef.current.style.height = `${window.innerHeight}px`;
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        handleResize();
-
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.scale(dpr, dpr);
+        }
+    }, [width, height]);
 
     const getPoint = (e: React.PointerEvent): DrawingPoint => {
+        if (!canvasRef.current) return { x: 0, y: 0, pressure: 0.5 };
+
+        const rect = canvasRef.current.getBoundingClientRect();
         return {
-            x: e.clientX,
-            y: e.clientY,
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
             pressure: e.pressure || 0.5,
         };
     };
@@ -155,6 +155,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ ghostPath, onDrawStart, o
         brushPos.current = getPoint(e); // Reset brush to start
         userPathRef.current = []; // Reset user path
         onDrawStart?.();
+        announce('Drawing started', 'polite');
 
         if (!rafId.current) {
             rafId.current = requestAnimationFrame(animate);
@@ -177,25 +178,19 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ ghostPath, onDrawStart, o
                 rafId.current = null;
             }
 
-            // Only finish if we have a ghost path and are close to the end
-            if (ghostPath && userPathRef.current.length > 0) {
-                const lastUserPoint = userPathRef.current[userPathRef.current.length - 1];
-                const lastGhostPoint = ghostPath.points[ghostPath.points.length - 1];
-                const distToEnd = Math.hypot(lastUserPoint.x - lastGhostPoint.x, lastUserPoint.y - lastGhostPoint.y);
+            // Only finish if we have a ghost path and enough points to constitute a drawing
+            if (ghostPath && userPathRef.current.length > 5) {
+                const score = calculateScore(userPathRef.current, ghostPath);
 
-                // Threshold for "finishing" (e.g., within 30px of end)
-                if (distToEnd < 30) {
-                    const score = calculateScore(userPathRef.current, ghostPath);
+                // Only announce/complete if score is meaningful or user clearly attempted
+                // We rely on LessonView to handle low scores (fail state) vs high scores (success)
+                if (score > 10) {
+                    announce(`Drawing complete. Score: ${score}`, 'assertive');
                     onDrawEnd?.(score);
                 } else {
-                    // User lifted pen but didn't finish. 
-                    // We effectively "pause" the scoring, but since this is a one-shot drawing app 
-                    // (currently), maybe we just let them restart by drawing again?
-                    // User request: "Level rating went away and came back..."
-                    // Current behavior: `startDrawing` resets the path.
-                    // If we want them to continue, we shouldn't reset on startDrawing if it was just a pause.
-                    // BUT, implementing full multi-stroke support is complex.
-                    // For now, PREVENTING the failure modal is the key fix.
+                    // Score too low (likely a stray mark), treat as incomplete/clear?
+                    // Or maybe just let them retry without modal.
+                    // For now, silent fail for very low scores is better than modal spam for accidental touches.
                 }
             }
 
