@@ -31,12 +31,12 @@ export const PencilMascot: React.FC<PencilMascotProps> = ({ isDrawing, isLevelCo
             rotationZ += time * 5; // Spin
         }
 
-        group.current.position.y = -2 + yOffset;
+        group.current.position.y = -3 + yOffset; // Lower base position
         group.current.rotation.z = Math.PI / 4 + rotationZ;
     });
 
     return (
-        <group ref={group} position={[3, -2, 0]} scale={[0.5, 0.5, 0.5]}>
+        <group ref={group} position={[-4, -3, 2]} scale={[0.8, 0.8, 0.8]}>
             {/* Body */}
             <mesh position={[0, 0, 0]}>
                 <cylinderGeometry args={[0.4, 0.4, 3, 6]} />
@@ -65,6 +65,24 @@ export const PencilMascot: React.FC<PencilMascotProps> = ({ isDrawing, isLevelCo
             <mesh position={[0, -2.15, 0]}>
                 <coneGeometry args={[0.1, 0.3, 16]} />
                 <meshStandardMaterial color="#1f2937" /> {/* Dark Graphics */}
+            </mesh>
+
+            {/* Eyes - white with black pupils */}
+            <mesh position={[-0.2, 0.5, 0.35]} rotation={[0, 0, 0]}>
+                <sphereGeometry args={[0.12, 8, 8]} />
+                <meshStandardMaterial color="white" />
+            </mesh>
+            <mesh position={[0.2, 0.5, 0.35]} rotation={[0, 0, 0]}>
+                <sphereGeometry args={[0.12, 8, 8]} />
+                <meshStandardMaterial color="white" />
+            </mesh>
+            <mesh position={[-0.2, 0.5, 0.45]} rotation={[0, 0, 0]}>
+                <sphereGeometry args={[0.05, 8, 8]} />
+                <meshStandardMaterial color="black" />
+            </mesh>
+            <mesh position={[0.2, 0.5, 0.45]} rotation={[0, 0, 0]}>
+                <sphereGeometry args={[0.05, 8, 8]} />
+                <meshStandardMaterial color="black" />
             </mesh>
         </group>
     );

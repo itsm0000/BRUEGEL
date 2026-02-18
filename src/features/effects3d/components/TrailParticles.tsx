@@ -1,5 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface TrailParticlesProps {
@@ -34,31 +34,34 @@ export const TrailParticles: React.FC<TrailParticlesProps> = ({ brushRef, isDraw
     // We'll need a way to map screen 2D to World 3D.
     // For this MV, let's assume brushPosition is normalized 0-1 from the hook.
 
+    const { camera } = useThree();
+
     useFrame((_, delta) => {
         if (!mesh.current) return;
 
         // Spawn new particle if drawing
         if (isDrawing && brushRef && brushRef.current) {
-            // Convert screen space to world space (Approximate)
-            // Assuming brushRef.current is {x, y} in canvas pixels 
-            // and 2D canvas is overlaid centrally.
+            // Convert screen space to world space (Unproject)
+            // Normalized Device Coordinates (NDC)
+            // brushRef.current is likely in pixels. 
+            // We need window dimensions. 
+            // Since this runs in useFrame, we can access generic window/viewport?
+            // React Three Fiber's "size" from useThree would be safer than window if embedded.
 
-            // const { width: viewportW, height: viewportH } = state.viewport;
-            // Native resolution of the canvas (from DrawingCanvas props, usually window inner)
-            // We don't have it here. Let's assume standard 1000ish width for now or tune.
-            // Better: use Three's unproject if we had camera and Z depth.
+            // Map pixels to -1 to 1
+            const nx = (brushRef.current.x / window.innerWidth) * 2 - 1;
+            const ny = -(brushRef.current.y / window.innerHeight) * 2 + 1;
 
-            // Temporary normalization assumed 0-1 from LessonView? 
-            // No, DrawingCanvas sends raw pixels.
+            const vector = new THREE.Vector3(nx, ny, 0.5);
+            vector.unproject(camera);
+            vector.sub(camera.position).normalize();
 
-            // Visual approximation factor:
-            const zoomFactor = 0.01;
-            const x = (brushRef.current.x - 500) * zoomFactor; // Centering (assuming 1000px width)
-            const y = -(brushRef.current.y - 300) * zoomFactor; // Centering (assuming 600px height)
+            const distance = 5; // Distance from camera
+            const pos = camera.position.clone().add(vector.multiplyScalar(distance));
 
             // Circular buffer logic
             const p = particles[currentIdx.current];
-            p.position.set(x, y, 0); // Z=0
+            p.position.copy(pos);
             p.life = 1.0;
             p.scale = 0.5;
             p.velocity.set(

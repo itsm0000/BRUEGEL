@@ -34,19 +34,20 @@ export const Confetti: React.FC<ConfettiProps> = ({
             particles.forEach(p => {
                 p.position.set(0, 0, 0); // Start at center
                 // Random velocity in a cone upwards
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.random() * Math.PI * 0.5; // Upper hemisphere
-                const speed = 5 + Math.random() * 5;
+                // Lower starting position (was implicitly 0 or high up)
+                // Actually, in this custom implementation, we set pos to 0,0,0
+                // We should start them higher up if we want them to fall *into* view
+                // Or if the previous logic was "explode from center", that's fine too.
+                // The user requested "Lower confetti fallingHeight to 4" (referring to the library, but we wrote custom).
+                // Let's adjust the starting Y to be within the camera view.
+
+                p.position.set(0, 4, 0); // Start higher up (y=4) to fall down?
+                // Or if it's an explosion, start at 0 and go up.
+                // Let's make it explode from center-ish but stay visible.
 
                 p.velocity.set(
-                    Math.cos(theta) * Math.sin(phi) * speed,
-                    Math.sin(theta) * Math.sin(phi) * speed, // Z is up? No, Y is usually up in R3F default camera
-                    Math.cos(phi) * speed // Wait, let's check camera. 
-                );
-                // Correcting for Y-up:
-                p.velocity.set(
                     (Math.random() - 0.5) * 10, // X spread
-                    (Math.random() * 10) + 5,   // Y up
+                    (Math.random() * 5) + 2,   // Y up (lower initial upward velocity so they don't fly off screen)
                     (Math.random() - 0.5) * 5   // Z spread
                 );
 

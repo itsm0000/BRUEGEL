@@ -17,9 +17,10 @@ export const Particles: React.FC<ParticlesProps> = ({ count = 200, color = '#fff
             const t = Math.random() * 100;
             const factor = 20 + Math.random() * 100;
             const speed = 0.01 + Math.random() / 200;
-            const xFactor = -50 + Math.random() * 100;
-            const yFactor = -50 + Math.random() * 100;
-            const zFactor = -50 + Math.random() * 100;
+            // Move particles closer to camera (z: -2.5 to 2.5) and spread wider
+            const xFactor = (Math.random() - 0.5) * 15;
+            const yFactor = (Math.random() - 0.5) * 10;
+            const zFactor = (Math.random() - 0.5) * 5;
             temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 });
         }
         return temp;
@@ -55,8 +56,13 @@ export const Particles: React.FC<ParticlesProps> = ({ count = 200, color = '#fff
         <>
             <pointLight ref={light} distance={40} intensity={8} color={color} />
             <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
-                <dodecahedronGeometry args={[0.05, 0]} />
-                <meshPhongMaterial color={color} transparent opacity={0.4} />
+                <dodecahedronGeometry args={[0.15, 0]} /> {/* Increased size */}
+                <meshPhongMaterial
+                    color={color}
+                    transparent
+                    opacity={0.6}
+                    blending={THREE.AdditiveBlending}
+                />
             </instancedMesh>
         </>
     );
