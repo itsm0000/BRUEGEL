@@ -7,7 +7,7 @@ import GenerativeReward from './GenerativeReward'
 import { playSound } from '~utils/sound'
 import { Level } from '@/types/level'
 import { ArrowLeft } from 'lucide-react';
-import { DrawingPoint } from '~utils/geometry';
+import { DrawingPoint, isSentinel } from '~utils/geometry';
 
 interface LessonViewProps {
     level: Level;
@@ -62,6 +62,7 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
         // 1. Calculate Bounds
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         level.points.forEach(p => {
+            if (isSentinel(p)) return;
             minX = Math.min(minX, p.x);
             maxX = Math.max(maxX, p.x);
             minY = Math.min(minY, p.y);
@@ -94,7 +95,7 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
         // 3. Center
         // drawnW/H is the size of the bounding box after scaling
         const drawnW = contentW * scale;
-        const drawnH = contentH * scale;
+        // const drawnH = contentH * scale; // Unused
 
         // Offset = Center of Available Space - Center of Drawn Content
         // Center of Available X = dim * 0.5 (Standard symmetry)
@@ -225,6 +226,7 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
                                     onDrawStart={handleDrawStart}
                                     onDrawEnd={handleDrawEnd}
                                     onPathUpdate={handlePathUpdate}
+                                    theme={theme}
                                 />
                             </>
                         )}

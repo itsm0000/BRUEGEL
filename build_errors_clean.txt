@@ -1,0 +1,1 @@
+src/features/progression/components/LessonView.tsx(98,15): error TS6133: 'drawnH' is declared but its value is never read.

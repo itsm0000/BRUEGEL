@@ -1,3 +1,5 @@
+import { SKETCHPAD_THEME } from './themes/sketchpad';
+
 export interface ThemeConfig {
     id: string;
     description: string;
@@ -11,6 +13,7 @@ export interface ThemeConfig {
             shadow: string;
             text: string;
         };
+        nodeShape?: 'rect' | 'circle';
         path: string;
         primaryButton: string;
     };
@@ -22,6 +25,11 @@ export interface ThemeConfig {
     typography: {
         headerfont: string; // Tailwind class
         bodyFont: string;   // Tailwind class
+    };
+    effects?: {
+        dust?: boolean;
+        inkSplat?: boolean;
+        magicGlow?: boolean;
     };
 }
 
@@ -77,7 +85,10 @@ export const THEMES: Record<string, ThemeConfig> = {
             headerfont: 'font-mono uppercase', // Technical look
             bodyFont: 'font-mono'
         }
-    }
+    },
+    'tier-1-1': SKETCHPAD_THEME,
+    'tier-1-2': SKETCHPAD_THEME,
+    'tier-1-3': SKETCHPAD_THEME
 };
 
 export const getThemeForSubTier = (subTier: string): ThemeConfig => {

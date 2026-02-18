@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Path } from '~utils/geometry';
+import { Path, isSentinel } from '~utils/geometry';
 
 interface GhostOverlayProps {
     path: Path;
@@ -10,6 +10,14 @@ interface GhostOverlayProps {
 const GhostOverlay: React.FC<GhostOverlayProps> = ({ path, width, height }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    const applyStrokeStyles = (ctx: CanvasRenderingContext2D) => {
+        ctx.setLineDash([8, 8]); // Distinct dash
+        ctx.strokeStyle = '#a8a29e'; // Stone-400
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    };
+
     const drawGhostPath = () => {
         const canvas = canvasRef.current;
         if (!canvas || !path.points.length || width === 0 || height === 0) return;
@@ -18,37 +26,48 @@ const GhostOverlay: React.FC<GhostOverlayProps> = ({ path, width, height }) => {
         if (!ctx) return;
 
         // Note: Canvas buffer size is set in the useEffect below
-        // Here we just draw. 
+        // Here we just draw.
         // Clearing is safe because we redraw everything
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw the ghost line
+        // Draw path segments
         ctx.beginPath();
-        ctx.setLineDash([8, 8]); // Distinct dash
-        ctx.strokeStyle = '#a8a29e'; // Stone-400 (Darker for visibility)
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        applyStrokeStyles(ctx);
 
-        // Move to first point
-        ctx.moveTo(path.points[0].x, path.points[0].y);
+        let isPenDown = false;
 
-        // Draw lines to subsequent points
-        for (let i = 1; i < path.points.length; i++) {
-            ctx.lineTo(path.points[i].x, path.points[i].y);
+        for (let i = 0; i < path.points.length; i++) {
+            const p = path.points[i];
+
+            if (isSentinel(p)) {
+                if (isPenDown) {
+                    ctx.stroke();
+                    isPenDown = false;
+                }
+            } else {
+                if (!isPenDown) {
+                    ctx.beginPath();
+                    applyStrokeStyles(ctx);
+                    ctx.moveTo(p.x, p.y);
+                    isPenDown = true;
+                } else {
+                    ctx.lineTo(p.x, p.y);
+                }
+            }
         }
+        if (isPenDown) ctx.stroke();
 
-        ctx.stroke();
-
-        // Draw start indicator
-        ctx.beginPath();
-        ctx.setLineDash([]); // Reset dash
-        ctx.arc(path.points[0].x, path.points[0].y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = '#10b981'; // Emerald-500
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        // Draw start indicator (if first point is valid)
+        if (path.points.length > 0 && !isSentinel(path.points[0])) {
+            ctx.beginPath();
+            ctx.setLineDash([]); // Reset dash
+            ctx.arc(path.points[0].x, path.points[0].y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#10b981'; // Emerald-500
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
     };
 
     // React to size or path changes

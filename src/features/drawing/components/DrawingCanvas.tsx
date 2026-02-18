@@ -1,17 +1,19 @@
 import React, { useRef, useEffect } from 'react';
 import { Path, DrawingPoint, calculateDeviation, calculateScore } from '~utils/geometry';
 import { announce } from '~components/a11y/A11yAnnouncer';
+import { ThemeConfig } from '~features/theming/ThemeSystem';
 
-interface DrawingCanvasProps {
+export interface DrawingCanvasProps {
     width: number;
     height: number;
     ghostPath?: Path;
     onDrawStart?: () => void;
     onDrawEnd?: (score: number) => void;
     onPathUpdate?: (path: DrawingPoint[]) => void;
+    theme?: ThemeConfig;
 }
 
-const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath, onDrawStart, onDrawEnd, onPathUpdate }) => {
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath, onDrawStart, onDrawEnd, onPathUpdate, theme }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false); // Ref for animation loop to avoid closure staleness
 
@@ -96,26 +98,39 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath,
         ctx.lineJoin = 'round';
         ctx.strokeStyle = strokeColor;
 
+        // Magic Glow Effect
+        if (theme?.effects?.magicGlow) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = strokeColor;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
         ctx.beginPath();
         ctx.moveTo(current.x, current.y);
         ctx.lineTo(nextX, nextY);
         ctx.stroke();
 
+        // Reset Shadow for other operations
+        ctx.shadowBlur = 0;
+
         // Update brush position
         brushPos.current = { x: nextX, y: nextY, pressure: nextPressure };
 
-        // Spawn Particles on movement
-        const dist = Math.hypot(nextX - current.x, nextY - current.y);
-        if (dist > 2) {
-            for (let i = 0; i < 2; i++) {
-                particlesRef.current.push({
-                    x: nextX + (Math.random() - 0.5) * 10,
-                    y: nextY + (Math.random() - 0.5) * 10,
-                    vx: (Math.random() - 0.5) * 2,
-                    vy: (Math.random() - 0.5) * 2,
-                    life: 1.0,
-                    color: `hsl(${Math.random() * 60 + 200}, 90%, 60%)` // Blue/Cyan/Purple hues
-                });
+        // Spawn Particles on movement (If Dust enabled)
+        if (theme?.effects?.dust) {
+            const dist = Math.hypot(nextX - current.x, nextY - current.y);
+            if (dist > 2) {
+                for (let i = 0; i < 2; i++) {
+                    particlesRef.current.push({
+                        x: nextX + (Math.random() - 0.5) * 10,
+                        y: nextY + (Math.random() - 0.5) * 10,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        life: 1.0,
+                        color: `hsl(${Math.random() * 60 + 200}, 90%, 60%)` // Blue/Cyan/Purple hues
+                    });
+                }
             }
         }
 

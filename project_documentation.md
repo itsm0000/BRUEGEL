@@ -152,4 +152,31 @@ This guarantees that *no matter the screen size*, the interactive specific drawi
 
 ---
 
+## 9. Tier 1: The Sketchpad Implementation (Phase 8)
+
+### 9.1 The Concept
+To make the introduction to drawing feel less intimidating, we created **"The Sketchpad"** tier. This environment is designed to feel warm, organic, and forgiving—like sketching on paper at a wooden desk—contrasting with the clinical "Academy" tier.
+
+### 9.2 Key Features
+*   **Visual Identity**:
+    *   **Background**: A custom noise-generated paper texture (`bg-[#f0f0f0]`) replaces the stark white.
+    *   **UI Elements**: User interface elements use warm amber/wood tones (`#d97706`).
+    *   **Nodes**: Level nodes are rendered as **Circles** (organic) rather than Rectangles (technical), featuring a pencil icon for completion.
+*   **Curriculum (30 Levels)**:
+    *   Expanded from 10 to 30 unique levels across 3 sub-tiers: "First Marks", "Simple Shapes", and "Combining Shapes".
+    *   **Composite Shapes**: Enabled drawing of complex objects (e.g., houses, snowmen) by supporting **discontinuous paths**.
+
+### 9.3 Technical Implementation
+*   **Sentinel Value Logic (`geometry.ts`)**:
+    *   To support "lifting the pen" within a single level data structure, we implemented `[-1, -1]` as a Sentinel Value (a "MoveTo" command).
+    *   The `DrawingCanvas` and `GhostOverlay` renderers were updated to break the stroke whenever this value is encountered.
+*   **Particle Systems (`DrawingCanvas.tsx`)**:
+    *   **Dust Particles**: A subtle particle system follows the brush tip, adding friction and "life" to the drawing experience.
+    *   **Magic Glow**: Upon level completion, the stroke emits a visual glow using CSS filters/Shadows.
+*   **Theme Engine Updates**:
+    *   Added `effects` flags (`dust`, `glow`, `splat`) to `ThemeConfig`.
+    *   Added `nodeShape` property to control UI morphology per tier.
+
+---
+
 **End of Documentation**

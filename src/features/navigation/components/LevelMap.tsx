@@ -3,7 +3,9 @@ import { useProgressStore } from '@/store/progress';
 import { Level } from '@/types/level'; // Type only
 import { useLevelLoader } from '~features/progression/hooks/useLevelLoader';
 import { playSound } from '~utils/sound';
-import { Lock, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Lock, ChevronRight, ChevronLeft, Pencil } from 'lucide-react';
+// Simple SVG Noise
+const NOISE_PATTERN = `data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E`;
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '~features/theming/ThemeContext';
 import { Skeleton } from '~components/ui/Skeleton';
@@ -147,8 +149,8 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                         linear-gradient(to bottom, ${theme.backgroundPattern.color} 1px, transparent 1px)
                     ` : theme.backgroundPattern.type === 'dots' ? `
                          radial-gradient(${theme.backgroundPattern.color} 1px, transparent 1px)
-                    ` : 'none',
-                    backgroundSize: '40px 40px'
+                    ` : theme.backgroundPattern.type === 'noise' ? `url("${NOISE_PATTERN}")` : 'none',
+                    backgroundSize: theme.backgroundPattern.type === 'noise' ? '200px 200px' : '40px 40px'
                 }}
             />
 
@@ -280,7 +282,8 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                                     disabled={!isUnlocked}
                                     aria-label={`Select Level ${level.title}`}
                                     className={`
-                                        relative w-48 h-32 rounded-sm border transition-all duration-300 group overflow-hidden
+                                        relative border transition-all duration-300 group overflow-hidden
+                                        ${theme.colors.nodeShape === 'circle' ? 'w-24 h-24 rounded-full' : 'w-48 h-32 rounded-sm'}
                                         ${theme.colors.node.bg} ${theme.colors.node.border} ${theme.colors.node.shadow}
                                         ${isUnlocked ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}
                                         ${isCurrent && isUnlocked ? `ring-2 ring-offset-2 ${theme.colors.text}` : ''}
@@ -294,8 +297,12 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                                                     {level.title}
                                                 </div>
 
-                                                {/* Star Rating as dots */}
-                                                {stars > 0 && (
+                                                {/* Star Rating as dots OR Pencil for Sketchpad */}
+                                                {stars > 0 && theme.colors.nodeShape === 'circle' ? (
+                                                    <div className="absolute bottom-2">
+                                                        <Pencil size={12} className={theme.colors.text} />
+                                                    </div>
+                                                ) : stars > 0 ? (
                                                     <div className="flex gap-1 mt-3" aria-label={`${stars} out of 3 stars`}>
                                                         {[1, 2, 3].map(s => (
                                                             <motion.div
@@ -307,7 +314,7 @@ const LevelMap: React.FC<LevelMapProps> = ({ onSelectLevel, onFreeDraw }) => {
                                                             />
                                                         ))}
                                                     </div>
-                                                )}
+                                                ) : null}
                                             </>
                                         ) : (
                                             <Lock className={`${theme.colors.accent} w-6 h-6`} aria-hidden="true" />

@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ThemeConfig, getThemeForSubTier } from './ThemeSystem';
 
 interface ThemeContextType {
-    subTier: 'i' | 'ii' | 'iii';
-    setSubTier: (tier: 'i' | 'ii' | 'iii') => void;
+    subTier: 'i' | 'ii' | 'iii' | 'tier-1-1' | 'tier-1-2' | 'tier-1-3';
+    setSubTier: (tier: 'i' | 'ii' | 'iii' | 'tier-1-1' | 'tier-1-2' | 'tier-1-3') => void;
     theme: ThemeConfig;
 }
 
@@ -11,11 +11,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
     children: ReactNode;
-    initialSubTier?: 'i' | 'ii' | 'iii';
+    initialSubTier?: 'i' | 'ii' | 'iii' | 'tier-1-1' | 'tier-1-2' | 'tier-1-3';
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, initialSubTier = 'i' }) => {
-    const [subTier, setSubTier] = useState<'i' | 'ii' | 'iii'>(initialSubTier);
+    const [subTier, setSubTier] = useState<'i' | 'ii' | 'iii' | 'tier-1-1' | 'tier-1-2' | 'tier-1-3'>(initialSubTier);
 
     // Derived state - instant calculation based on subTier
     const theme = getThemeForSubTier(subTier);

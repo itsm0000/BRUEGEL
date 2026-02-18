@@ -27,6 +27,10 @@ export const lerp = (start: number, end: number, t: number): number => {
     return start * (1 - t) + end * t;
 };
 
+export const isSentinel = (p: Point): boolean => {
+    return p.x < 0 && p.y < 0;
+};
+
 // Generate a sample lesson path (a circle)
 export const generateCirclePath = (centerX: number, centerY: number, radius: number, points: number = 100): Path => {
     const path: DrawingPoint[] = [];
@@ -117,6 +121,9 @@ export const calculateDeviation = (point: Point, path: Path): number => {
     for (let i = 0; i < path.points.length - 1; i++) {
         const p1 = path.points[i];
         const p2 = path.points[i + 1];
+
+        if (isSentinel(p1) || isSentinel(p2)) continue;
+
         const dist = distanceToSegment(point, p1, p2);
         if (dist < minDistance) minDistance = dist;
     }
@@ -125,8 +132,11 @@ export const calculateDeviation = (point: Point, path: Path): number => {
     if (path.isClosed) {
         const pLast = path.points[path.points.length - 1];
         const pFirst = path.points[0];
-        const dist = distanceToSegment(point, pLast, pFirst);
-        if (dist < minDistance) minDistance = dist;
+
+        if (!isSentinel(pLast) && !isSentinel(pFirst)) {
+            const dist = distanceToSegment(point, pLast, pFirst);
+            if (dist < minDistance) minDistance = dist;
+        }
     }
 
     return minDistance;
@@ -162,6 +172,8 @@ export const calculateScore = (userPoints: Point[], ghostPath: Path): number => 
 
     for (let i = 0; i < ghostPath.points.length; i += pathStep) {
         const gp = ghostPath.points[i];
+        if (isSentinel(gp)) continue;
+
         // naive check: is this ghost point close to any user point?
         // optimization: we just need to find ONE close user point
         let isCovered = false;
