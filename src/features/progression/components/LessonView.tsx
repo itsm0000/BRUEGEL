@@ -8,6 +8,7 @@ import { playSound } from '~utils/sound'
 import { Level } from '@/types/level'
 import { ArrowLeft } from 'lucide-react';
 import { DrawingPoint, isSentinel } from '~utils/geometry';
+import { Scene3D } from '~features/effects3d/Scene3D';
 
 interface LessonViewProps {
     level: Level;
@@ -132,9 +133,14 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
 
     // Track user path for the reward generation
     const userPathRef = useRef<DrawingPoint[]>([]);
+    const brushRef = useRef<{ x: number; y: number } | null>(null);
 
     const handlePathUpdate = useCallback((path: DrawingPoint[]) => {
         userPathRef.current = path;
+    }, []);
+
+    const handleBrushMove = useCallback((point: DrawingPoint) => {
+        brushRef.current = { x: point.x, y: point.y };
     }, []);
 
     // Auto-hide UI logic
@@ -202,6 +208,15 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
                 }}
             />
 
+            {/* 3D Effects Layer */}
+
+            <Scene3D
+                isLevelComplete={showReward}
+                // isUIHidden is true when drawing logic starts, so it's a good proxy for "drawing active"
+                isDrawing={isUIHidden}
+                brushRef={brushRef}
+            />
+
             {/* Museum Frame Container */}
             <div className="absolute inset-0 flex items-center justify-center p-8 md:p-12 pointer-events-none">
                 <div className="relative w-full h-full max-w-[1600px] max-h-[90vh] bg-white shadow-2xl rounded-sm border-[12px] border-stone-100 ring-1 ring-stone-900/5 overflow-hidden transition-all duration-700 ease-in-out">
@@ -226,6 +241,7 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
                                     onDrawStart={handleDrawStart}
                                     onDrawEnd={handleDrawEnd}
                                     onPathUpdate={handlePathUpdate}
+                                    onBrushMove={handleBrushMove}
                                     theme={theme}
                                 />
                             </>

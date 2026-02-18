@@ -10,10 +10,11 @@ export interface DrawingCanvasProps {
     onDrawStart?: () => void;
     onDrawEnd?: (score: number) => void;
     onPathUpdate?: (path: DrawingPoint[]) => void;
+    onBrushMove?: (point: DrawingPoint) => void;
     theme?: ThemeConfig;
 }
 
-const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath, onDrawStart, onDrawEnd, onPathUpdate, theme }) => {
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath, onDrawStart, onDrawEnd, onPathUpdate, onBrushMove, theme }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false); // Ref for animation loop to avoid closure staleness
 
@@ -116,6 +117,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, ghostPath,
 
         // Update brush position
         brushPos.current = { x: nextX, y: nextY, pressure: nextPressure };
+        if (onBrushMove) onBrushMove(brushPos.current);
 
         // Spawn Particles on movement (If Dust enabled)
         if (theme?.effects?.dust) {

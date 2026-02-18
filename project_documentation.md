@@ -179,4 +179,32 @@ To make the introduction to drawing feel less intimidating, we created **"The Sk
 
 ---
 
+---
+
+## 10. 3D Effects Integration (Phase 9: "The Magic Layer")
+
+### 10.1 The Goal
+To increase user engagement and provide delightful feedback, we integrated lightweight **3D visual effects** into the "Sketchpad" tier. The goal was to make the app feel "alive" without compromising the 2D drawing performance.
+
+### 10.2 The Implementation (`src/features/effects3d/`)
+We utilized **React Three Fiber (R3F)** to create an interactive 3D layer that sits *behind* the 2D drawing canvas.
+
+*   **Scene Composition (`Scene3D.tsx`)**: The main container orchestrates the 3D world, camera, and lighting. It reacts to game state (`isDrawing`, `isLevelComplete`) passed from `LessonView`.
+*   **Performance First**:
+    *   **Instanced Rendering**: used `instancedMesh` for particles (`Particles.tsx`), trails (`TrailParticles.tsx`), and confetti (`Confetti.tsx`) to render hundreds of objects with single draw calls.
+    *   **Ref-Based Updates**: To maintain 60fps drawing, we bypassed React state for high-frequency brush updates. `DrawingCanvas` writes directly to a mutable `brushRef`, which `TrailParticles` reads inside its `useFrame` loop.
+
+### 10.3 Key Components
+1.  **Ambient Atmosphere**:
+    *   `Particles.tsx`: Dust motes floating in the background.
+    *   `SunRays.tsx`: A custom shader-based rotating light effect.
+2.  **Mascot (`PencilMascot.tsx`)**:
+    *   A procedural low-poly pencil character.
+    *   **Animations**: "Wiggles" when drawing, "Spins" on victory.
+3.  **Feedback**:
+    *   `TrailParticles.tsx`: Golden spheres follow the brush path.
+    *   `Confetti.tsx`: A custom physics simulation (gravity, velocity, rotation) that triggers on level success.
+
+---
+
 **End of Documentation**
