@@ -1,0 +1,8 @@
+﻿src/features/drawing/3d/DrawingCanvasTexture.tsx(1,36): error TS6133: 'useState' is declared but its value is never read.
+src/features/drawing/3d/DrawingCanvasTexture.tsx(1,46): error TS6133: 'useMemo' is declared but its value is never read.
+src/features/drawing/3d/DrawingCanvasTexture.tsx(4,24): error TS2724: '"~utils/geometry"' has no exported member named 'evaluateScore'. Did you mean 'calculateScore'?
+src/features/drawing/3d/DrawingCanvasTexture.tsx(203,64): error TS2353: Object literal may only specify known properties, and 'timestamp' does not exist in type 'DrawingPoint'.
+src/features/drawing/3d/DrawingCanvasTexture.tsx(204,63): error TS2353: Object literal may only specify known properties, and 'timestamp' does not exist in type 'DrawingPoint'.
+src/features/navigation/3d/LevelMap3D.tsx(1,17): error TS6133: 'useMemo' is declared but its value is never read.
+src/features/navigation/3d/LevelMap3D.tsx(5,1): error TS6133: 'THREE' is declared but its value is never read.
+src/features/progression/components/Lesson3D.tsx(3,10): error TS6133: 'DrawingPoint' is declared but its value is never read.

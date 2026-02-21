@@ -1,111 +1,126 @@
 import React, { useRef, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useGameStore } from '@/store/game';
 
 interface TrailParticlesProps {
-    brushRef?: React.MutableRefObject<{ x: number; y: number } | null>;
+    brushRef: React.MutableRefObject<THREE.Vector3>;
     isDrawing: boolean;
 }
 
 export const TrailParticles: React.FC<TrailParticlesProps> = ({ brushRef, isDrawing }) => {
     const mesh = useRef<THREE.InstancedMesh>(null);
-    const count = 100;
+    const count = 150; // Increased pool for fire mode
 
-    // Use a circular buffer for particles
     const particles = useMemo(() => {
         return new Array(count).fill(0).map(() => ({
             position: new THREE.Vector3(0, -1000, 0),
             scale: 0,
             life: 0,
-            velocity: new THREE.Vector3()
+            velocity: new THREE.Vector3(),
+            color: new THREE.Color('#fbbf24'),
         }));
     }, []);
 
     const currentIdx = useRef(0);
-
-
-    // Convert 2D brush (0-1000 likely?) to 3D world space
-    // We need to know the mapping. For now, we'll assume the 2D canvas 
-    // maps to a certain range in 3D or we need to unproject.
-    // Since we don't have the exact mapping here, we might need to rely on 
-    // passed-in NORMALIZED coordinates (-1 to 1) or similar.
-    // Let's assume brushPosition is passed in World Coordinates or we convert it.
-    // BUT: The 2D canvas is separate. The R3F camera is fixed.
-    // We'll need a way to map screen 2D to World 3D.
-    // For this MV, let's assume brushPosition is normalized 0-1 from the hook.
-
-    const { camera } = useThree();
+    const spawnAccumulator = useRef(0);
+    const dummy = useMemo(() => new THREE.Object3D(), []);
 
     useFrame((_, delta) => {
-        if (!mesh.current) return;
+        if (!mesh.current || useGameStore.getState().isPaused) return;
 
-        // Spawn new particle if drawing
-        if (isDrawing && brushRef && brushRef.current) {
-            // Convert screen space to world space (Unproject)
-            // Normalized Device Coordinates (NDC)
-            // brushRef.current is likely in pixels. 
-            // We need window dimensions. 
-            // Since this runs in useFrame, we can access generic window/viewport?
-            // React Three Fiber's "size" from useThree would be safer than window if embedded.
+        const gameState = useGameStore.getState();
+        const streak = gameState.streak;
+        const isFireMode = streak >= 3;
 
-            // Map pixels to -1 to 1
-            const nx = (brushRef.current.x / window.innerWidth) * 2 - 1;
-            const ny = -(brushRef.current.y / window.innerHeight) * 2 + 1;
+        // Spawn rate: normal = 1 per frame, fire = 3 per frame
+        const spawnRate = isFireMode ? 3 : 1;
 
-            const vector = new THREE.Vector3(nx, ny, 0.5);
-            vector.unproject(camera);
-            vector.sub(camera.position).normalize();
+        // Spawn new particles if drawing
+        if (isDrawing && brushRef.current) {
+            spawnAccumulator.current += spawnRate;
 
-            const distance = 5; // Distance from camera
-            const pos = camera.position.clone().add(vector.multiplyScalar(distance));
+            while (spawnAccumulator.current >= 1) {
+                spawnAccumulator.current -= 1;
 
-            // Circular buffer logic
-            const p = particles[currentIdx.current];
-            p.position.copy(pos);
-            p.life = 1.0;
-            p.scale = 0.5;
-            p.velocity.set(
-                (Math.random() - 0.5) * 5,
-                (Math.random() - 0.5) * 5,
-                0
-            );
+                const p = particles[currentIdx.current];
+                // Use the brush's 3D world position directly
+                p.position.copy(brushRef.current);
+                // Add slight random offset
+                p.position.x += (Math.random() - 0.5) * 0.3;
+                p.position.y += (Math.random() - 0.5) * 0.3;
+                p.position.z += 0.1;
 
-            currentIdx.current = (currentIdx.current + 1) % count;
+                p.life = 1.0;
+                p.scale = isFireMode ? 0.4 : 0.2;
+
+                // Fire mode: upward velocity for flame effect
+                if (isFireMode) {
+                    p.velocity.set(
+                        (Math.random() - 0.5) * 2,
+                        Math.random() * 4 + 1, // Strong upward
+                        (Math.random() - 0.5) * 0.5
+                    );
+                    // Orange to red gradient based on streak intensity
+                    const fireIntensity = Math.min((streak - 3) / 5, 1);
+                    p.color.setHSL(0.08 - fireIntensity * 0.06, 1, 0.5 + Math.random() * 0.2);
+                } else {
+                    p.velocity.set(
+                        (Math.random() - 0.5) * 1.5,
+                        (Math.random() - 0.5) * 1.5,
+                        0
+                    );
+                    p.color.set('#fbbf24'); // Default amber
+                }
+
+                currentIdx.current = (currentIdx.current + 1) % count;
+            }
+        } else {
+            spawnAccumulator.current = 0;
         }
 
-        const dummy = new THREE.Object3D();
-
+        // Update all particles
         particles.forEach((p, i) => {
             if (p.life > 0) {
-                p.life -= delta * 2; // Fade out speed
-                p.scale = p.life * 0.2;
+                p.life -= delta * 2.5;
+                p.scale = Math.max(p.life, 0) * 0.25;
                 p.position.addScaledVector(p.velocity, delta);
+
+                // Slow down velocity over time
+                p.velocity.multiplyScalar(0.97);
 
                 dummy.position.copy(p.position);
                 dummy.scale.set(p.scale, p.scale, p.scale);
                 dummy.updateMatrix();
                 mesh.current!.setMatrixAt(i, dummy.matrix);
+                mesh.current!.setColorAt(i, p.color);
             } else {
-                // Hide
                 dummy.position.set(0, -1000, 0);
+                dummy.scale.set(0, 0, 0);
                 dummy.updateMatrix();
                 mesh.current!.setMatrixAt(i, dummy.matrix);
             }
         });
 
         mesh.current.instanceMatrix.needsUpdate = true;
+        if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
     });
 
-    // Expose a method or use effect to spawn?
-    // Actually, useFrame allows us to spawn if drawing state implies movement
-    // But without a robust coordinate conversion, this is decorative.
-    // Let's keep it simple: 
-    // The integration step will handle passing the correct Ref or Coordinates.
+    const streak = useGameStore((s) => s.streak);
+    const isFireMode = streak >= 3;
 
     return (
         <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
             <sphereGeometry args={[0.5, 8, 8]} />
-            <meshBasicMaterial color="#fbbf24" transparent opacity={0.8} />
+            <meshStandardMaterial
+                color={isFireMode ? '#ff6b35' : '#fbbf24'}
+                transparent
+                opacity={0.85}
+                emissive={isFireMode ? '#ff4500' : '#000000'}
+                emissiveIntensity={isFireMode ? 2.0 : 0}
+                toneMapped={false}
+            />
         </instancedMesh>
     );
 };
+

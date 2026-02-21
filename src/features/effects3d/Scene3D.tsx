@@ -1,5 +1,6 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { Particles } from './components/Particles';
 import { SunRays } from './components/SunRays';
 import { PencilMascot } from './components/PencilMascot';
@@ -11,10 +12,11 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 interface Scene3DProps {
     isLevelComplete?: boolean;
     isDrawing?: boolean;
-    brushRef?: React.MutableRefObject<{ x: number; y: number } | null>;
 }
 
-export const Scene3D: React.FC<Scene3DProps> = ({ isLevelComplete, isDrawing, brushRef }) => {
+export const Scene3D: React.FC<Scene3DProps> = ({ isLevelComplete, isDrawing }) => {
+    const brushRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
+
     return (
         <div className="absolute inset-0 pointer-events-none z-0">
             <Canvas
@@ -45,3 +47,4 @@ export const Scene3D: React.FC<Scene3DProps> = ({ isLevelComplete, isDrawing, br
         </div>
     );
 };
+

@@ -212,9 +212,7 @@ const LessonView: React.FC<LessonViewProps> = ({ level, onComplete, onBack, onNe
 
             <Scene3D
                 isLevelComplete={showReward}
-                // isUIHidden is true when drawing logic starts, so it's a good proxy for "drawing active"
                 isDrawing={isUIHidden}
-                brushRef={brushRef}
             />
 
             {/* Museum Frame Container */}

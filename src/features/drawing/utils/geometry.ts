@@ -152,33 +152,57 @@ export const calculateScore = (userPoints: Point[], ghostPath: Path): number => 
 
     // --- 1. Precision ---
     let totalDistance = 0;
-    const userStep = Math.max(1, Math.floor(userPoints.length / 100));
+    // Don't skip points to be precise, or just step slightly
+    const userStep = 1;
     let userCount = 0;
 
     for (let i = 0; i < userPoints.length; i += userStep) {
-        const p = userPoints[i];
-        totalDistance += calculateDeviation(p, ghostPath);
+        if (isSentinel(userPoints[i])) continue;
+        totalDistance += calculateDeviation(userPoints[i], ghostPath);
         userCount++;
     }
 
     const avgDistance = userCount > 0 ? totalDistance / userCount : 100;
-    const precisionScore = Math.max(0, 100 - (avgDistance * 2.5)); // Tuned: Slightly more forgiving (was 3)
+    // Forgiving scale factor: 10px off is 100-20=80% precision
+    const precisionScore = Math.max(0, 100 - (avgDistance * 2));
 
     // --- 2. Coverage ---
-    // Check how many ghost points are close to ANY user point
+    // Generate many sub-points along the ghost path so coverage isn't decimated by small level data arrays
     let coveredPoints = 0;
-    const pathStep = Math.max(1, Math.floor(ghostPath.points.length / 50));
-    const coverageThreshold = 20; // Distance to search
+    const denseGhostPoints: Point[] = [];
 
-    for (let i = 0; i < ghostPath.points.length; i += pathStep) {
-        const gp = ghostPath.points[i];
-        if (isSentinel(gp)) continue;
+    for (let i = 0; i < ghostPath.points.length - 1; i++) {
+        const p1 = ghostPath.points[i];
+        const p2 = ghostPath.points[i + 1];
+        if (isSentinel(p1) || isSentinel(p2)) continue;
 
-        // naive check: is this ghost point close to any user point?
-        // optimization: we just need to find ONE close user point
+        const dist = distance(p1, p2);
+        // Add a point every 10 pixels
+        const segments = Math.max(1, Math.floor(dist / 10));
+        for (let s = 0; s < segments; s++) {
+            const t = s / segments;
+            denseGhostPoints.push({
+                x: lerp(p1.x, p2.x, t),
+                y: lerp(p1.y, p2.y, t)
+            });
+        }
+    }
+
+    // Fallback if path is truly just 1 point
+    if (denseGhostPoints.length === 0 && ghostPath.points.length > 0) {
+        denseGhostPoints.push(ghostPath.points[0]);
+    }
+
+    const coverageThreshold = 30; // Very forgiving distance
+
+    for (let i = 0; i < denseGhostPoints.length; i++) {
+        const gp = denseGhostPoints[i];
+
         let isCovered = false;
-        // We can sample user points here too for perf
-        for (let j = 0; j < userPoints.length; j += 5) {
+        // Check user points (step by 2 to save some perf on huge lines)
+        for (let j = 0; j < userPoints.length; j += 2) {
+            if (isSentinel(userPoints[j])) continue;
+
             const dist = distance(gp, userPoints[j]);
             if (dist < coverageThreshold) {
                 isCovered = true;
@@ -188,12 +212,10 @@ export const calculateScore = (userPoints: Point[], ghostPath: Path): number => 
         if (isCovered) coveredPoints++;
     }
 
-    const totalPathSamples = Math.ceil(ghostPath.points.length / pathStep);
-    const coverageScore = (coveredPoints / totalPathSamples) * 100;
+    const coverageScore = denseGhostPoints.length > 0 ? (coveredPoints / denseGhostPoints.length) * 100 : 0;
 
-    // Weighting
-    // If coverage is very low (< 50%), penalty is harsh
-    const finalScore = (precisionScore * 0.4) + (coverageScore * 0.6);
+    // Weighting: 50/50 precision and coverage
+    const finalScore = (precisionScore * 0.5) + (coverageScore * 0.5);
 
     return Math.round(finalScore);
 };

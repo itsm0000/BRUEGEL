@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group } from 'three';
+import { useGameStore } from '@/store/game';
 
 interface PencilMascotProps {
     isDrawing?: boolean;
@@ -11,7 +12,7 @@ export const PencilMascot: React.FC<PencilMascotProps> = ({ isDrawing, isLevelCo
     const group = useRef<Group>(null);
 
     useFrame((state) => {
-        if (!group.current) return;
+        if (!group.current || useGameStore.getState().isPaused) return;
 
         const time = state.clock.elapsedTime;
 

@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useGameStore } from '@/store/game';
 
 interface ParticlesProps {
     count?: number;
@@ -29,7 +30,7 @@ export const Particles: React.FC<ParticlesProps> = ({ count = 200, color = '#fff
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
     useFrame(() => {
-        if (!mesh.current) return;
+        if (!mesh.current || useGameStore.getState().isPaused) return;
 
         particles.forEach((particle, i) => {
             let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
@@ -56,7 +57,7 @@ export const Particles: React.FC<ParticlesProps> = ({ count = 200, color = '#fff
         <>
             <pointLight ref={light} distance={40} intensity={8} color={color} />
             <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
-                <dodecahedronGeometry args={[0.15, 0]} /> {/* Increased size */}
+                <dodecahedronGeometry args={[0.02, 0]} /> {/* subtle size */}
                 <meshPhongMaterial
                     color={color}
                     transparent
