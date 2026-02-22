@@ -207,4 +207,103 @@ We utilized **React Three Fiber (R3F)** to create an interactive 3D layer that s
 
 ---
 
+## 11. The Great Pivot: From React to Godot (Phase 10 — February 22, 2026)
+
+### 11.1 The Crisis
+
+After months of iterative development on the React + React Three Fiber stack, the user reached a breaking point. The application — despite having dozens of components, particle systems, audio engines, scoring algorithms, and 3D effects — **looked and felt like a broken prototype**. Key observations:
+
+- **Drawing strokes were nearly invisible** — thin, low-contrast lines on a transparent 3D plane
+- **UI elements overlapped chaotically** — score displays, titles, and buttons stacking on each other
+- **The "wooden desk" was flat and untextured** — a single brown box with no visual depth
+- **Particles and confetti were not visually triggering** despite the physics code being present
+- **Audio was a synthesized oscillator buzz** instead of musical notes or sound effects
+- **Bloom/post-processing effects were non-functional** — invisible or overpowering
+- **The entire experience felt "dead"** — no responsiveness, no juice, no engagement
+
+### 11.2 Root Cause Analysis: Why React Was the Wrong Tool
+
+The core problem was identified: **React + Three.js is fundamentally the wrong tool for building a game with Candy Crush-level juice.** The analysis:
+
+| What a game engine provides natively | What React forced us to reinvent |
+|---|---|
+| Particle System (drag emitter, set curves, preview) | 185+ lines of manual `instancedMesh` management + physics simulation |
+| Animation Timeline (keyframe any property, set easing) | `useState` + CSS transitions, or manual interpolation in `useFrame` |
+| Audio Mixer (drag clips to events, set volumes, crossfade) | Raw `OscillatorNode` creation producing unappealing synthesized tones |
+| Screen Shake (attach component, set trauma/decay) | Manual shake math in `useFrame` with hardcoded random offsets |
+| Sprite/Texture handling (import, auto-atlas, one-click assign) | Manual `CanvasTexture` projection, UV mapping, fighting transparency |
+
+**The "Frankenstein" Problem**: Each feature was technically implemented (code existed, logic was correct), but the results felt completely dead because React provides **features** while game engines provide **systems** — coordinated pipelines with depth sorting, alpha blending, lighting interaction, and automatic culling that make things feel alive.
+
+### 11.3 Tech Stack Evaluation
+
+A comprehensive evaluation of alternative stacks was conducted against the project's requirements:
+
+| Requirement | React + R3F | Phaser.js | Godot | Unity |
+|---|---|---|---|---|
+| 2D drawing game quality | ❌ Poor — fighting the framework | ✅ Good — built for 2D web games | ✅ Excellent — 2D-first engine | ✅ Good but overengineered |
+| "Candy Crush-level" juice | ❌ Requires reinventing every system | ⚠️ Decent — built-in tweens, particles | ✅ Built-in particles, tweens, shaders, audio | ✅ Best-in-class |
+| Mobile export (native) | ❌ Web only (Capacitor wrapper) | ❌ Web only (Capacitor wrapper) | ✅ Native Android/iOS export | ✅ Native everything |
+| AI-assisted development | ⚠️ Code-only, no visual feedback | ⚠️ Code-only | ✅ Text-based scenes (.tscn), MCP integration | ❌ Heavily editor-dependent |
+| Learning curve | ✅ Already known | ✅ Same TS/JS | ⚠️ New (GDScript ≈ Python) | ❌ Steep — editor-heavy |
+| Cost | ✅ Free | ✅ Free | ✅ Free (MIT license, forever) | ⚠️ Free under $200K, then fees |
+
+### 11.4 The Decision: Godot 4.6.1
+
+**Godot was chosen** as the new engine for the following reasons:
+
+1. **Text-based scene files** (`.tscn`) — Unlike Unity's binary scenes, Godot scenes are human-readable text. This means AI assistants can create, edit, and debug scenes just like source code files.
+2. **MCP Integration** — The Model Context Protocol enables AI assistants (Claude/Antigravity) to directly interact with the Godot editor: creating scenes, adding nodes, writing GDScript, reading debug output, and running projects. This closed the feedback loop that was missing in the React approach.
+3. **2D-first architecture** — Godot was originally built as a 2D engine and added 3D later. For a drawing game, this means first-class support for canvases, line rendering, input handling, and 2D particles.
+4. **Built-in juice systems** — Tweens, particle emitters, AudioStreamPlayer, Camera2D effects (shake, zoom), and AnimationPlayer are all native, tested, and tunable without code.
+5. **Native export** — One codebase compiles to Web (HTML5/WASM), Android (APK/AAB), iOS (IPA), Windows, Mac, and Linux.
+6. **MIT License** — No revenue sharing, no subscription, no corporate risk (unlike Unity's licensing history).
+
+### 11.5 Unity AI Landscape Research
+
+Before committing to Godot, the state of Unity's AI integration was thoroughly researched:
+
+- **Unity AI Beta (GDC March 12, 2026)** — Unity announced a text-to-game system using OpenAI GPT + Meta Llama models, capable of generating "full casual games from natural language prompts." This is entering public beta 3 weeks from the pivot date.
+- **Unity AI Suite** — Includes an in-editor AI assistant for scripting, debugging, UI creation, animation controllers, and optimization. Available in Unity 6.2 beta.
+- **Unity AI Generators** — Generate sprites, textures, sounds, materials, and animations from text prompts.
+
+**Why Unity was NOT chosen despite its AI investment:**
+- Unity's AI tools are first-party but **require Unity's visual editor** for maximum effectiveness. Current external AI assistants (like Claude) cannot operate Unity's Inspector, Shader Graph, or Animation Timeline.
+- Unity's proprietary ecosystem introduces vendor lock-in risks.
+- For the specific use case (2D drawing game), Godot + MCP provides a more immediate and controllable AI-assisted workflow.
+- **Future flexibility**: If Unity's text-to-game system proves superior, the game's design (levels, scoring, progression) can be ported. The intellectual work transfers regardless of engine.
+
+### 11.6 MCP Integration Setup
+
+The following MCP infrastructure was established:
+
+- **Server**: [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) (free, open-source)
+- **Location**: `C:\Users\MT\Projects\godot-mcp`
+- **Capabilities**: 14 tools — `launch_editor`, `run_project`, `get_debug_output`, `stop_project`, `get_godot_version`, `list_projects`, `get_project_info`, `create_scene`, `add_node`, `load_sprite`, `export_mesh_library`, `save_scene`, `get_uid`, `update_project_uids`
+- **Config**: Stored in `C:\Users\MT\.gemini\antigravity\mcp_config.json`
+- **Godot Path**: `E:\UNITY\Godot_v4.6.1-stable_win64.exe\Godot_v4.6.1-stable_win64.exe`
+- **Project**: `C:\Users\MT\Projects\drawing-game` (Godot 4.6.1, Compatibility renderer)
+
+**Persistence**: The MCP connection is configured at the IDE level, persisting across all future chat sessions. New sessions automatically have access to Godot tools; only project context (what's being built) needs a brief reminder.
+
+### 11.7 What Carries Over vs. What's Abandoned
+
+| Carries over (reusable) | Abandoned (React-specific) |
+|---|---|
+| Level path coordinate data (`levelPaths.ts`) | All `.tsx` React components |
+| Scoring algorithm concepts (precision + coverage) | Three.js/R3F scene setup |
+| Tier/SubTier curriculum structure | Web Audio API oscillator code |
+| "Dopamine Engine" design document | Zustand store management |
+| Game design decisions (streak mechanics, variable rewards) | CSS/Tailwind styling |
+| User research (ADHD-focused engagement patterns) | `package.json` dependencies |
+
+### 11.8 New Development Workflow
+
+The pivot establishes a fundamentally different AI-assisted game development workflow:
+
+- **AI (Antigravity/Claude)**: Implementation. Create scenes, write GDScript, configure particle systems, set up audio, debug errors — all through MCP tools and direct file editing.
+- **User**: Design direction and QA. Play the game, evaluate feel, provide feedback: "This confetti is too weak," "The chime needs to come 0.2 seconds earlier," "The screen shake is too long." User's ADHD-calibrated "is this boring?" detector serves as the ultimate quality gate.
+
+---
+
 **End of Documentation**

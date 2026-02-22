@@ -51,14 +51,13 @@ export const DrawingCanvasTexture: React.FC<DrawingCanvasTextureProps> = ({
 
         const ctx = canvasRef.current.getContext('2d');
         if (ctx) {
-            // Fill background white
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
+            // Clear background to be transparent
+            ctx.clearRect(0, 0, width, height);
 
             // Draw Ghost Path
             if (ghostPath.points.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = '#a8a29e'; // stone-400 (darker gray for visibility)
+                ctx.strokeStyle = 'rgba(168, 162, 158, 0.5)'; // stone-400 with 50% opacity
                 ctx.lineWidth = 15;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -105,12 +104,11 @@ export const DrawingCanvasTexture: React.FC<DrawingCanvasTextureProps> = ({
         // Full redraw of background + ghost
         const ctx = canvasRef.current?.getContext('2d');
         if (ctx && canvasRef.current) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
             if (ghostPath.points.length > 0) {
                 ctx.beginPath();
-                ctx.strokeStyle = '#a8a29e'; // stone-400
+                ctx.strokeStyle = 'rgba(168, 162, 158, 0.5)'; // stone-400 with 50% opacity
                 ctx.lineWidth = 15;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -251,10 +249,12 @@ export const DrawingCanvasTexture: React.FC<DrawingCanvasTextureProps> = ({
             position={[0, 0, 0]}
         >
             <planeGeometry args={[12, 9]} /> {/* 4:3 Aspect Ratio for desk pad */}
-            <meshBasicMaterial
+            <meshStandardMaterial
                 ref={materialRef}
                 map={textureRef.current}
                 side={THREE.DoubleSide}
+                transparent={true}
+                roughness={0.6}
             />
         </mesh>
     );
